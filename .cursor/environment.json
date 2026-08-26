@@ -1,0 +1,4 @@
+{
+  "name": "Bruin CLI",
+  "install": "./.cursor/install.sh"
+}
