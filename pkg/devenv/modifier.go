@@ -79,8 +79,7 @@ func (d *DevEnvQueryModifier) Modify(ctx context.Context, p *pipeline.Pipeline, 
 		d.connSchemaCache = make(map[string]*ansisql.DBDatabase)
 	}
 
-	if cached := d.connSchemaCache[connName]; cached != nil {
-		dbSummary = cached
+	if dbSummary = d.connSchemaCache[connName]; dbSummary != nil {
 		d.connSchemaCacheLock.Unlock()
 	} else {
 		wg.Add(1)

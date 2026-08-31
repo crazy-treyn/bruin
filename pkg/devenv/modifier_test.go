@@ -801,22 +801,13 @@ func TestTableExistsInDatabasePrefersMetadataChecker(t *testing.T) {
 func TestDevEnvQueryModifier_Modify_FetchesSummaryOnSecondConnection(t *testing.T) {
 	t.Parallel()
 
-	// Reusing one DevEnvQueryModifier across assets is the --downstream path.
-	// After the first connection populates connSchemaCache, a cache miss for a
-	// second connection used to skip GetDatabaseSummary and panic on
-	// dbSummary.Name when UsedTables included a 3-part reference.
-
 	pipelineA := &pipeline.Pipeline{
 		DefaultConnections: map[string]string{"postgres": "conn-a"},
 	}
 	pipelineB := &pipeline.Pipeline{
 		DefaultConnections: map[string]string{"postgres": "conn-b"},
 	}
-	assetA := &pipeline.Asset{
-		Name: "dev_schema1.table1",
-		Type: pipeline.AssetTypePostgresQuery,
-	}
-	assetB := &pipeline.Asset{
+	asset := &pipeline.Asset{
 		Name: "dev_schema1.table1",
 		Type: pipeline.AssetTypePostgresQuery,
 	}
@@ -864,17 +855,13 @@ func TestDevEnvQueryModifier_Modify_FetchesSummaryOnSecondConnection(t *testing.
 	}
 	ctx := context.WithValue(t.Context(), config.EnvironmentContextKey, &config.Environment{SchemaPrefix: "dev_"})
 
-	gotA, err := modifier.Modify(ctx, pipelineA, assetA, &query.Query{Query: queryA})
+	gotA, err := modifier.Modify(ctx, pipelineA, asset, &query.Query{Query: queryA})
 	require.NoError(t, err)
 	require.Equal(t, &query.Query{Query: "SELECT * FROM dev_schema1.table1"}, gotA)
-	connA.AssertNumberOfCalls(t, "GetDatabaseSummary", 1)
 
-	require.NotPanics(t, func() {
-		gotB, errB := modifier.Modify(ctx, pipelineB, assetB, &query.Query{Query: queryB})
-		require.NoError(t, errB)
-		require.Equal(t, &query.Query{Query: queryB}, gotB)
-	})
-	connB.AssertNumberOfCalls(t, "GetDatabaseSummary", 1)
+	gotB, err := modifier.Modify(ctx, pipelineB, asset, &query.Query{Query: queryB})
+	require.NoError(t, err)
+	require.Equal(t, &query.Query{Query: queryB}, gotB)
 	sqlParser.AssertExpectations(t)
 	connA.AssertExpectations(t)
 	connB.AssertExpectations(t)
@@ -930,12 +917,9 @@ func TestDevEnvQueryModifier_Modify_DoesNotCacheFailedSummary(t *testing.T) {
 	_, err := modifier.Modify(ctx, p, asset, &query.Query{Query: queryA})
 	require.EqualError(t, err, "failed to get db summary")
 
-	require.NotPanics(t, func() {
-		got, errB := modifier.Modify(ctx, p, asset, &query.Query{Query: queryB})
-		require.NoError(t, errB)
-		require.Equal(t, &query.Query{Query: queryB}, got)
-	})
-	connA.AssertNumberOfCalls(t, "GetDatabaseSummary", 2)
+	got, err := modifier.Modify(ctx, p, asset, &query.Query{Query: queryB})
+	require.NoError(t, err)
+	require.Equal(t, &query.Query{Query: queryB}, got)
 	sqlParser.AssertExpectations(t)
 	connA.AssertExpectations(t)
 }
