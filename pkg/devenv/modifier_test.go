@@ -913,9 +913,6 @@ func TestDevEnvQueryModifier_Modify_DoesNotCacheFailedSummary(t *testing.T) {
 	sqlParser := new(mockSQLParser)
 	queryA := "SELECT * FROM schema1.table1"
 	sqlParser.On("UsedTables", queryA, "postgres").Return([]string{"schema1.table1"}, nil)
-	sqlParser.On("RenameTables", queryA, "postgres", map[string]string{
-		"schema1.table1": "dev_schema1.table1",
-	}).Return("SELECT * FROM dev_schema1.table1", nil)
 
 	queryB := "SELECT * FROM otherdb.schema.table"
 	sqlParser.On("UsedTables", queryB, "postgres").Return([]string{"otherdb.schema.table"}, nil)
